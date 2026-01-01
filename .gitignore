@@ -1,0 +1,47 @@
+.venv
+# Python
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+# C extensions
+*.so
+
+# Environments
+.env
+venv/
+env/
+# add other virtual environments you might use, e.g.:
+# .venv/
+
+# Django-specific
+# SQLite database file
+*.sqlite3
+# Local settings file (often used for sensitive data not in the main settings.py)
+local_settings.py
+# Media and static file directories (if they are build artifacts and not source)
+media/
+static/
+# Log and backup files
+*.log
+*.bak
+*.pot
+
+# IDE-specific
+# VS Code
+.vscode/
+# PyCharm
+.idea/
+
+# OS-specific
+# macOS
+.DS_Store
+
+# Testing and coverage reports
+.tox/
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Do not ignore migrations
+# The "migrations" folders should generally be tracked by Git
+# (do NOT add "migrations/" here)
