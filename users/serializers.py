@@ -18,5 +18,6 @@ class UserCreateSerializers(serializers.ModelSerializer):
             last_name=validated_data.get('last_name', ''),
             address=validated_data.get('address', None),
             phone=validated_data.get('phone', None),
+            is_active = False
         )
         return user
