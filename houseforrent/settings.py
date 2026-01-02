@@ -39,7 +39,11 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'djoser',
     'users',
+    'api',
+
 ]
 
 MIDDLEWARE = [
@@ -131,3 +135,20 @@ cloudinary.config(
     api_secret = config('cloud_APIsecret'),
     secure=True
 )
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+    ),
+}
+
+SIMPLE_JWT = {
+   'AUTH_HEADER_TYPES': ('JWT',),
+}
+
+DJOSER = {
+    'SERIALIZERS': {
+        'user_create': 'users.serializers.UserCreateSerializers',
+    },
+}
