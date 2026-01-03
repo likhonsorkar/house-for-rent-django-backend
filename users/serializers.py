@@ -2,9 +2,10 @@ from rest_framework import serializers
 from users.models import User, UserProfile
 
 class UserProfileSerializer(serializers.ModelSerializer):
+    profile_image = serializers.ImageField()
     class Meta:
         model = UserProfile
-        fields = ('profile_image', 'bio', 'date_of_birth','gender')
+        fields = ('id','profile_image', 'bio', 'date_of_birth','gender')
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer(read_only = True)
     class Meta:
