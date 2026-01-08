@@ -4,12 +4,14 @@ from rest_framework import status
 from rentals.models import HouseAdvertisement
 from dashboard.serializers import AdminHouseAdverstisementSerializer
 from api.permissions import IsAdmin
-from rest_framework.viewsets import GenericViewSet
+from rest_framework.viewsets import GenericViewSet, ModelViewSet
 from rest_framework import mixins
 from rest_framework.views import APIView
 from django.utils import timezone
 from datetime import timedelta
 from users.models import User
+from users.serializers import UserProfileSerializer
+from drf_yasg.utils import swagger_auto_schema
 
 
 class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, GenericViewSet):
@@ -17,6 +19,28 @@ class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, m
     permission_classes = [IsAdmin]
     def get_queryset(self):
         return HouseAdvertisement.objects.all()
+    @swagger_auto_schema(
+        operation_summary="[Admin] List all advertisements (approved and pending)"
+    )
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+    @swagger_auto_schema(
+        operation_summary="[Admin] Retrieve a specific advertisement"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+    @swagger_auto_schema(operation_summary="[Admin] Update an advertisement")
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
+    @swagger_auto_schema(
+        method="post",
+        operation_summary="[Admin] Approve a pending advertisement",
+        responses={
+            200: "Advertisement approved successfully.",
+            400: "Advertisement is already approved.",
+            404: "Advertisement not found.",
+        },
+    )
     @action(detail=True, methods=['post'], url_path='approve')
     def approve_advertisement(self, request, pk=None):
         """
@@ -36,6 +60,10 @@ class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, m
         
 class AdminStatisticsView(APIView):
     permission_classes = [IsAdmin]
+    @swagger_auto_schema(
+        operation_summary="[Admin] Get platform statistics",
+        operation_description="Retrieves key statistics about users and advertisements for the admin dashboard.",
+    )
     def get(self, request, *args, **kwargs):
         total_user = User.objects.all().count()
         total_ads = HouseAdvertisement.objects.count()
@@ -55,3 +83,23 @@ class AdminStatisticsView(APIView):
             'total_user': total_user
         }
         return Response(stats)
+class AdminPublicProfileView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, GenericViewSet):
+    permission_classes = [IsAdmin]
+    serializer_class = UserProfileSerializer
+    def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return User.objects.none()
+        return User.objects.select_related('profile').all()
+    @swagger_auto_schema(operation_summary="[Admin] List all user profiles")
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @swagger_auto_schema(
+        operation_summary="[Admin] Retrieve a specific user profile"
+    )
+    def retrieve(self, request, *args, **kwargs):
+        return super().retrieve(request, *args, **kwargs)
+
+    @swagger_auto_schema(operation_summary="[Admin] Update a user profile")
+    def update(self, request, *args, **kwargs):
+        return super().update(request, *args, **kwargs)
