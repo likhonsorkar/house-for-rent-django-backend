@@ -58,6 +58,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "whitenoise.middleware.WhiteNoiseMiddleware",
 ]
 
 ROOT_URLCONF = 'houseforrent.urls'
@@ -77,16 +78,26 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'houseforrent.wsgi.application'
+WSGI_APPLICATION = 'houseforrent.wsgi.app'
 
 
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': config('dbname'),
+        'USER': config('db_user'),
+        'PASSWORD': config('db_password'),
+        'HOST': config('db_host'),
+        'PORT': config('db_port')
     }
 }
 
@@ -126,6 +137,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/6.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 #Email Setup
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST')
@@ -170,5 +182,20 @@ DJOSER = {
         'user_create': 'users.serializers.UserCreateSerializers',
         'user': 'users.serializers.UserSerializer',
         'current_user': 'users.serializers.UserSerializer',
+    },
+}
+SWAGGER_SETTINGS = {
+    'SECURITY_DEFINITIONS': {
+        'Bearer': {
+            'type': 'apiKey',
+            'name': 'Authorization',
+            'in': 'header',
+            'description': 'Enter your JWT token in the format: `JWT <your_token>`'
+        }
+    }
+}
+STORAGES = {
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
     },
 }
