@@ -3,6 +3,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
 from rest_framework.exceptions import ValidationError
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework.viewsets import ModelViewSet
 from rest_framework.permissions import IsAuthenticated
 from rentals.models import HouseAdvertisement, HouseImage, Review, Favorite, RentRequest
@@ -10,6 +11,8 @@ from api.permissions import IsOwnerOrReadOnly, HouseAdsOwner, IsOwner
 from rentals.serializers import HouseAdverstisementSerializer, HouseImageSerializer, ReviewSerializer, FavoriteSerializer, RentRequestSerializer
 class AdvertisementViewSet(ModelViewSet):
     serializer_class = HouseAdverstisementSerializer
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['category', 'bedrooms', 'bathrooms']
     permission_classes = [IsOwnerOrReadOnly]
     def get_queryset(self):
         user = self.request.user

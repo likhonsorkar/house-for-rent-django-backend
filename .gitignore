@@ -45,3 +45,5 @@ htmlcov/
 # Do not ignore migrations
 # The "migrations" folders should generally be tracked by Git
 # (do NOT add "migrations/" here)
+docs.txt
+docs2.txt
