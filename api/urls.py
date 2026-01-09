@@ -16,7 +16,7 @@ ads_router.register('favorites', FavoriteViewset, basename='Favorite')
 ads_router.register('requests', RentRequestViewSet, basename='requests' )
 
 urlpatterns = [
-    path('', include(router.urls)),
-    path('', include(ads_router.urls)),
-    path('dashboard/', include('dashboard.urls'))
+    path('', include(router.urls)),    
+    path('', include(ads_router.urls)),    
+    path('dashboard/', include('dashboard.urls')),
 ]

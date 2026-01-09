@@ -3,10 +3,10 @@ from rest_framework import routers
 from dashboard.views import AdminPublicProfileView
 from dashboard.views import AdvertisementViewSet, AdminStatisticsView
 
-router = routers.DefaultRouter()
+router = routers.SimpleRouter()
 
-router.register('profile', AdminPublicProfileView, basename='profile')
-router.register('ads', AdvertisementViewSet, basename='ads')
+router.register('profile', AdminPublicProfileView, basename='adminpublicprofile')
+router.register('ads', AdvertisementViewSet, basename='approveadsbyadmin')
 
 urlpatterns = [
     path('', include(router.urls)),

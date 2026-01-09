@@ -5,8 +5,10 @@ from users.models import User
 from api.permissions import ProfileOwner
 from rest_framework import mixins
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.response import Response
 class UserProfileViewSet(mixins.RetrieveModelMixin, 
                          mixins.UpdateModelMixin, 
+                         mixins.ListModelMixin,
                          GenericViewSet):
     http_method_names = ['get', 'put', 'patch', 'head', 'options']
     serializer_class = UserProfileSerializer
@@ -19,6 +21,10 @@ class UserProfileViewSet(mixins.RetrieveModelMixin,
         if self.kwargs.get('pk') == 'me':
             return self.request.user
         return super().get_object()
+    def list(self, request, *args, **kwargs):
+        if not request.user.is_staff:
+            return Response({"detail": "Method not allowed"}, status=405)
+        return super().list(request, *args, **kwargs)
     @swagger_auto_schema(operation_summary="Retrieve your user profile",)
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
