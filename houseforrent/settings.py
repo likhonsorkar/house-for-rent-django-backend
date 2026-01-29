@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'django_filters',
     'djoser',
     'drf_yasg',
+    'corsheaders',
     'users',
     'rentals',
     'api',
@@ -52,6 +53,7 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -201,3 +203,10 @@ SWAGGER_SETTINGS = {
 #         "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
 #     },
 # }
+
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://localhost:5174"
+    "http://localhost:8080",
+    "http://127.0.0.1:9000",
+]
