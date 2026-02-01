@@ -179,9 +179,9 @@ SIMPLE_JWT = {
 }
 
 DJOSER = {
-    'EMAIL_FRONTEND_PROTOCOL': config('EMAIL_FRONTEND_PROTOCOL'),
-    'EMAIL_FRONTEND_DOMAIN': config('EMAIL_FRONTEND_DOMAIN'),
-    'EMAIL_FRONTEND_SITE_NAME': config('EMAIL_FRONTEND_SITE_NAME'),
+    'EMAIL_FRONTEND_PROTOCOL': config('EMAIL_FRONTEND_PROTOCOL', default='https'),
+    'EMAIL_FRONTEND_DOMAIN': config('EMAIL_FRONTEND_DOMAIN', default='house-for-rent-react-frontend.vercel.app'),
+    'EMAIL_FRONTEND_SITE_NAME': config('EMAIL_FRONTEND_SITE_NAME', default='HOUSEFORRENT'),
     'PASSWORD_RESET_CONFIRM_URL': 'password/reset/confirm/{uid}/{token}',
     'ACTIVATION_URL': 'activate/{uid}/{token}',
     'SEND_ACTIVATION_EMAIL': True,
@@ -211,6 +211,4 @@ CORS_ALLOWED_ORIGINS = [
     "https://house-for-rent-react-frontend.vercel.app",
     "http://localhost:5173",
     "http://localhost:5174"
-    "http://localhost:8080",
-    "http://127.0.0.1:9000",
 ]
