@@ -9,10 +9,12 @@ from rest_framework.permissions import IsAuthenticated
 from rentals.models import HouseAdvertisement, HouseImage, Review, Favorite, RentRequest
 from api.permissions import IsOwnerOrReadOnly, HouseAdsOwner, IsOwner
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.pagination import PageNumberPagination
 from rentals.serializers import HouseAdverstisementSerializer, HouseImageSerializer, ReviewSerializer, FavoriteSerializer, RentRequestSerializer
 class AdvertisementViewSet(ModelViewSet):
     serializer_class = HouseAdverstisementSerializer
     filter_backends = [DjangoFilterBackend]
+    pagination_class = PageNumberPagination
     filterset_fields = ['category', 'bedrooms', 'bathrooms']
     permission_classes = [IsOwnerOrReadOnly]
     def get_queryset(self):
