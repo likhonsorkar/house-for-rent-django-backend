@@ -10,12 +10,15 @@ from rentals.models import HouseAdvertisement, HouseImage, Review, Favorite, Ren
 from api.permissions import IsOwnerOrReadOnly, HouseAdsOwner, IsOwner
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.pagination import PageNumberPagination
+import django_filters
 from rentals.serializers import HouseAdverstisementSerializer, HouseImageSerializer, ReviewSerializer, FavoriteSerializer, RentRequestSerializer
 class AdvertisementViewSet(ModelViewSet):
+    rent_min = django_filters.NumberFilter(field_name="rent", lookup_expr="gte")
+    rent_max = django_filters.NumberFilter(field_name="rent", lookup_expr="lte")
     serializer_class = HouseAdverstisementSerializer
     filter_backends = [DjangoFilterBackend]
     pagination_class = PageNumberPagination
-    filterset_fields = ['category', 'bedrooms', 'bathrooms']
+    filterset_fields = ['category', 'bedrooms', 'bathrooms' , 'rent_min', 'rent_max']
     permission_classes = [IsOwnerOrReadOnly]
     def get_queryset(self):
         user = self.request.user
