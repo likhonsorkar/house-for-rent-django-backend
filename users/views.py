@@ -12,7 +12,7 @@ class UserProfileViewSet(mixins.RetrieveModelMixin,
                          GenericViewSet):
     http_method_names = ['get', 'put', 'patch', 'head', 'options']
     serializer_class = UserProfileSerializer
-    permission_classes = [IsAuthenticated, ProfileOwner]
+    permission_classes = [ProfileOwner]
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return User.objects.none()
