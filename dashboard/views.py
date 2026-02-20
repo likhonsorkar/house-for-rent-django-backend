@@ -18,7 +18,7 @@ class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, m
     serializer_class = AdminHouseAdverstisementSerializer
     permission_classes = [IsAdmin]
     def get_queryset(self):
-        return HouseAdvertisement.objects.all()
+        return HouseAdvertisement.objects.filter(is_approved=False)
     @swagger_auto_schema(
         operation_summary="[Admin] List all advertisements (approved and pending)"
     )
