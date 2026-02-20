@@ -2,12 +2,14 @@ from django.urls import path, include
 # from rest_framework import routers
 from rest_framework_nested import routers
 from users.views import UserProfileViewSet
-from rentals.views import AdvertisementViewSet, HouseImagesViewset, HouseReviewsViewset, FavoriteViewset, RentRequestViewSet
+from rentals.views import MyAdvertiseViewSet, AdvertisementViewSet, HouseImagesViewset, HouseReviewsViewset, FavoriteViewset, RentRequestViewSet
 
 router = routers.DefaultRouter()
 
 router.register('profile', UserProfileViewSet, basename='profile')
 router.register('ads', AdvertisementViewSet, basename='ads')
+
+router.register('myads', MyAdvertiseViewSet, basename='myads')
 
 ads_router = routers.NestedDefaultRouter(router, 'ads', lookup='ads')
 ads_router.register('images', HouseImagesViewset, basename='images')

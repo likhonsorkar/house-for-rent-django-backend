@@ -2,12 +2,13 @@ from rest_framework import status
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from rest_framework.decorators import action
+from rest_framework import  mixins
 from rest_framework.exceptions import ValidationError
 from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework.viewsets import ModelViewSet
+from rest_framework.viewsets import ModelViewSet, GenericViewSet
 from rest_framework.permissions import IsAuthenticated
 from rentals.models import HouseAdvertisement, HouseImage, Review, Favorite, RentRequest
-from api.permissions import IsOwnerOrReadOnly, HouseAdsOwner, IsOwner
+from api.permissions import IsOwnerOrReadOnly, HouseAdsOwner, IsOwner, OnlyOwner
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.pagination import PageNumberPagination
 from rentals.serializers import HouseAdverstisementSerializer, HouseImageSerializer, ReviewSerializer, FavoriteSerializer, RentRequestSerializer
@@ -48,6 +49,18 @@ class AdvertisementViewSet(ModelViewSet):
                          operation_description="Deletes a house advertisement. Only the owner of the advertisement can perform this action.")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+class MyAdvertiseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
+    serializer_class = HouseAdverstisementSerializer
+    filter_backends = [DjangoFilterBackend]
+    pagination_class = PageNumberPagination
+    filterset_fields = ['category', 'bedrooms', 'bathrooms']
+    permission_classes = [OnlyOwner]
+    def get_queryset(self):
+        user = self.request.user
+        if user.is_authenticated and user.is_staff:
+            return HouseAdvertisement.objects.all()
+        return HouseAdvertisement.objects.filter(is_approved=True)
+
 class HouseImagesViewset(ModelViewSet):
     serializer_class = HouseImageSerializer
     permission_classes = [HouseAdsOwner]
