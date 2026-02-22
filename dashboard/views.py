@@ -4,7 +4,7 @@ from rest_framework import status
 from rentals.models import HouseAdvertisement
 from dashboard.serializers import AdminHouseAdverstisementSerializer
 from api.permissions import IsAdmin
-from rest_framework.viewsets import GenericViewSet, ModelViewSet
+from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins
 from rest_framework.views import APIView
 from django.utils import timezone
@@ -12,8 +12,6 @@ from datetime import timedelta
 from users.models import User
 from users.serializers import UserProfileSerializer
 from drf_yasg.utils import swagger_auto_schema
-
-
 class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, GenericViewSet):
     serializer_class = AdminHouseAdverstisementSerializer
     permission_classes = [IsAdmin]
@@ -57,7 +55,6 @@ class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, m
             return Response({'detail': 'Advertisement not found.'}, status=status.HTTP_404_NOT_FOUND)
         except Exception as e:
             return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-        
 class AdminStatisticsView(APIView):
     permission_classes = [IsAdmin]
     @swagger_auto_schema(
@@ -93,13 +90,12 @@ class AdminPublicProfileView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     @swagger_auto_schema(operation_summary="[Admin] List all user profiles")
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-
     @swagger_auto_schema(
         operation_summary="[Admin] Retrieve a specific user profile"
     )
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
-
     @swagger_auto_schema(operation_summary="[Admin] Update a user profile")
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
+
