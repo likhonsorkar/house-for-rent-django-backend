@@ -1,8 +1,8 @@
 from django.urls import path, include
 from rest_framework_nested import routers
 from users.views import UserProfileViewSet
-from rentals.views import MyAdvertiseViewSet, AdvertisementViewSet, HouseImagesViewset, HouseReviewsViewset, FavoriteViewset, RentRequestViewSet
-from account.views import InvoiceViewSet #TransactionViewSet # Added payment_success, InvoiceViewSet, TransactionViewSet
+from rentals.views import OwnerRequestViewSet, MyAdvertiseViewSet, AdvertisementViewSet, HouseImagesViewset, HouseReviewsViewset, FavoriteViewset, RentRequestViewSet
+from account.views import InvoiceViewSet 
 router = routers.DefaultRouter()
 
 router.register('profile', UserProfileViewSet, basename='profile')
@@ -17,6 +17,8 @@ ads_router.register('images', HouseImagesViewset, basename='images')
 ads_router.register('reviews', HouseReviewsViewset, basename='reviews')
 ads_router.register('favorites', FavoriteViewset, basename='Favorite')
 ads_router.register('requests', RentRequestViewSet, basename='requests' )
+
+router.register('owner-requests', OwnerRequestViewSet, basename='owner-requests')
 
 
 urlpatterns = [

@@ -12,10 +12,19 @@ from rentals.models import HouseAdvertisement, HouseImage, Review, Favorite, Ren
 from api.permissions import IsOwnerOrReadOnly, HouseAdsOwner, IsOwner, OnlyOwner
 from drf_yasg.utils import swagger_auto_schema
 from rest_framework.pagination import PageNumberPagination
-from rentals.serializers import HouseAdverstisementSerializer, HouseImageSerializer, ReviewSerializer, FavoriteSerializer, RentRequestSerializer
+from rentals.serializers import (
+    OwnerManageRequestSerializer, 
+    HouseAdvertisementSerializer, 
+    HouseImageSerializer, 
+    ReviewSerializer, 
+    FavoriteSerializer, 
+    RentRequestSerializer
+)
 from account.models import Invoice
+from rest_framework import viewsets, permissions
+
 class AdvertisementViewSet(ModelViewSet):
-    serializer_class = HouseAdverstisementSerializer
+    serializer_class = HouseAdvertisementSerializer
     filter_backends = [DjangoFilterBackend]
     pagination_class = PageNumberPagination
     filterset_fields = ['category', 'bedrooms', 'bathrooms']
@@ -51,19 +60,18 @@ class AdvertisementViewSet(ModelViewSet):
                          operation_description="Deletes a house advertisement. Only the owner of the advertisement can perform this action.")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
 class MyAdvertiseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, GenericViewSet):
-    serializer_class = HouseAdverstisementSerializer
+    serializer_class = HouseAdvertisementSerializer
     filter_backends = [DjangoFilterBackend]
     pagination_class = PageNumberPagination
     filterset_fields = ['category', 'bedrooms', 'bathrooms']
     permission_classes = [OnlyOwner]
     def get_queryset(self):
         user = self.request.user
-        if user.is_authenticated and user.is_staff:
-            return HouseAdvertisement.objects.all()
-        return HouseAdvertisement.objects.filter(is_approved=True)
+        return HouseAdvertisement.objects.filter(owner=user)
     @swagger_auto_schema(operation_summary="List current user's advertisements",
-                         operation_description="Lists all house advertisements owned by the currently authenticated user. Staff users can see all approved advertisements.")
+                         operation_description="Lists all house advertisements owned by the currently authenticated user.")
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
 
@@ -72,12 +80,77 @@ class MyAdvertiseViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, Gener
     def retrieve(self, request, *args, **kwargs):
         return super().retrieve(request, *args, **kwargs)
 
+class OwnerRequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, GenericViewSet):
+    serializer_class = OwnerManageRequestSerializer
+    permission_classes = [IsAuthenticated]
+    http_method_names = ['get', 'post', 'delete', 'head', 'options']
+
+    def get_queryset(self):
+        return RentRequest.objects.filter(
+            advertisement__owner=self.request.user
+        ).select_related('user', 'advertisement')
+
+    @swagger_auto_schema(
+        method="post",
+        operation_summary="Accept a rent request",
+        operation_description="Accepts a tenant's request to rent a property. If an advance is required, an invoice is created.",
+        responses={
+            200: "Request accepted.",
+            400: "Property already booked or already accepted.",
+            406: "User already booked another house."
+        },
+    )
+    @action(detail=True, methods=['post'])
+    def accept(self, request, pk=None):
+        rent_request = self.get_object()
+        ad = rent_request.advertisement
+
+        if rent_request.is_accepted:
+            return Response({'detail': 'Already accepted'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if ad.is_booked:
+            return Response({"detail": "This property is already booked."}, status=status.HTTP_400_BAD_REQUEST)
+
+        if RentRequest.objects.filter(user=rent_request.user, is_accepted=True).exists():
+            return Response({"detail": "User Already Booked Another House."}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
+        rent_request.is_accepted = True
+        rent_request.save()
+
+        if ad.advance and ad.advance > 0:
+            Invoice.objects.create(
+                advertisement=ad,
+                payer=rent_request.user, 
+                created_by=ad.owner,    
+                amount=ad.advance,
+                invoice_type="advance",
+                transaction_id=f"ADV-{uuid.uuid4().hex[:8].upper()}", 
+                status="pending",
+                payment_method="sslcommerz"
+            )
+            return Response({"detail": "Rent request accepted. An advance invoice has been created, awaiting payment."}, status=status.HTTP_200_OK)
+        else:
+            ad.is_booked = True
+            ad.save()
+            return Response({"detail": "Rent request accepted and property booked immediately (no advance required)."}, status=status.HTTP_200_OK)
+
+    @swagger_auto_schema(
+        method="post",
+        operation_summary="Reject a rent request",
+        operation_description="Rejects a tenant's request by deleting it."
+    )
+    @action(detail=True, methods=['post'])
+    def reject(self, request, pk=None):
+        rent_request = self.get_object()
+        rent_request.delete()
+        return Response({'detail': 'Request rejected successfully'}, status=status.HTTP_200_OK)
+
 class HouseImagesViewset(ModelViewSet):
     serializer_class = HouseImageSerializer
     permission_classes = [HouseAdsOwner]
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
-            return HouseImage.objects.none() # অথবা Review.objects.none()
+            return HouseImage.objects.none()
         return HouseImage.objects.filter(advertisement_id=self.kwargs['ads_pk'])
     def perform_create(self, serializer):
         serializer.save(advertisement_id=self.kwargs['ads_pk'])
@@ -100,6 +173,7 @@ class HouseImagesViewset(ModelViewSet):
                          operation_description="Deletes an image. Only the owner of the advertisement can perform this action.")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
 class HouseReviewsViewset(ModelViewSet):
     serializer_class = ReviewSerializer
     permission_classes = [IsAuthenticated]
@@ -129,11 +203,14 @@ class HouseReviewsViewset(ModelViewSet):
                          operation_description="Deletes a review. Only the user who created the review can perform this action.")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
 class FavoriteViewset(ModelViewSet):
     serializer_class = FavoriteSerializer
     http_method_names = ['get', 'post', 'delete', 'head', 'options']
     def get_queryset(self):
-        return Favorite.objects.all()
+        if getattr(self, 'swagger_fake_view', False):
+            return Favorite.objects.none()
+        return Favorite.objects.filter(user=self.request.user, advertisement_id=self.kwargs['ads_pk'])
     def get_permissions(self):
         if self.action == 'destroy':
             return [IsAuthenticated(), IsOwner()]
@@ -144,7 +221,7 @@ class FavoriteViewset(ModelViewSet):
         responses={
             201: "Favorite added successfully.",
             401: "Authentication credentials were not provided.",
-            404: "Advertisement not found.", # Assuming ads_pk leads to 404 if ad doesn't exist
+            404: "Advertisement not found.", 
             406: "You have already added this house to your favorites."
         }
     )
@@ -158,7 +235,7 @@ class FavoriteViewset(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(advertisement_id=self.kwargs['ads_pk'], user=self.request.user)
     @swagger_auto_schema(operation_summary="List your favorite advertisements",
-                         operation_description="Lists all the advertisements that the user has marked as favorite.")
+                         operation_description="Lists your favorites for this advertisement.")
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
     @swagger_auto_schema(operation_summary="Remove an advertisement from favorites",
@@ -177,8 +254,8 @@ class RentRequestViewSet(ModelViewSet):
         ads_pk = self.kwargs.get('ads_pk')
         ad = get_object_or_404(HouseAdvertisement, pk=ads_pk)
         if ad.owner == user:
-            return RentRequest.objects.filter(advertisement_id=ads_pk)
-        return RentRequest.objects.filter(advertisement_id=ads_pk, user=user)
+            return RentRequest.objects.filter(advertisement_id=ads_pk).select_related('user')
+        return RentRequest.objects.filter(advertisement_id=ads_pk, user=user).select_related('advertisement')
     @swagger_auto_schema(
         operation_summary="Request to rent a house",
         operation_description="Sends a request to rent a house advertisement. A user cannot request to rent the same house twice, or if the house is already booked, or if the user has already booked another house.",
@@ -186,7 +263,7 @@ class RentRequestViewSet(ModelViewSet):
             201: "Rent request created successfully.",
             400: "This property is already booked.",
             401: "Authentication credentials were not provided.",
-            404: "Advertisement not found.", # Assuming ads_pk leads to 404 if ad doesn't exist
+            404: "Advertisement not found.", 
             406: "You have already requested for this property. / You have already booked another property."
         }
     )
@@ -219,30 +296,39 @@ class RentRequestViewSet(ModelViewSet):
                          operation_description="Deletes or cancels a rent request. This can be done by the user who made the request or the owner of the house advertisement.")
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
+
     @swagger_auto_schema(
         method="post",
         operation_summary="Accept a rent request (owner only)",
-        operation_description="Accepts a tenant's request to rent a property, which marks the property as booked.",
+        operation_description="Accepts a tenant's request to rent a property. If an advance is required, an invoice is created.",
         responses={
-            200: "Request accepted and property booked!",
-            400: "Property already booked.",
+            200: "Request accepted.",
+            400: "Property already booked or already accepted.",
             403: "Not authorized.",
-            406: "User already booked another house / Invoice created, awaiting payment."
+            406: "User already booked another house."
         },
     )
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
     def accept(self, request, ads_pk=None, pk=None):
         rent_request = self.get_object()
         ad = rent_request.advertisement
+        
         if ad.owner != request.user:
             return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+            
+        if rent_request.is_accepted:
+            return Response({'detail': 'Already accepted'}, status=status.HTTP_400_BAD_REQUEST)
+
         if ad.is_booked:
             return Response({"detail": "This property is already booked."}, status=status.HTTP_400_BAD_REQUEST)
+
         if RentRequest.objects.filter(user=rent_request.user, is_accepted=True).exists():
             return Response({"detail": "User Already Booked Another House."}, status=status.HTTP_406_NOT_ACCEPTABLE)
+
         rent_request.is_accepted = True
         rent_request.save()
-        if ad.advance > 0:
+
+        if ad.advance and ad.advance > 0:
             Invoice.objects.create(
                 advertisement=ad,
                 payer=rent_request.user, 
@@ -253,10 +339,23 @@ class RentRequestViewSet(ModelViewSet):
                 status="pending",
                 payment_method="sslcommerz"
             )
-            ad.save()
             return Response({"detail": "Rent request accepted. An advance invoice has been created, awaiting payment."}, status=status.HTTP_200_OK)
         else:
             ad.is_booked = True
             ad.save()
             return Response({"detail": "Rent request accepted and property booked immediately (no advance required)."}, status=status.HTTP_200_OK)
-    
+
+    @swagger_auto_schema(
+        method="post",
+        operation_summary="Reject a rent request (owner only)",
+        operation_description="Rejects a tenant's request by deleting it."
+    )
+    @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
+    def reject(self, request, ads_pk=None, pk=None):
+        rent_request = self.get_object()
+        ad = rent_request.advertisement
+        if ad.owner != request.user:
+            return Response({"detail": "Not authorized."}, status=status.HTTP_403_FORBIDDEN)
+        
+        rent_request.delete()
+        return Response({'detail': 'Request rejected successfully'}, status=status.HTTP_200_OK)

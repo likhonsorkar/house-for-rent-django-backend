@@ -2,7 +2,7 @@ from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
 from rentals.models import HouseAdvertisement
-from dashboard.serializers import AdminHouseAdverstisementSerializer
+from dashboard.serializers import AdminHouseAdvertisementSerializer
 from api.permissions import IsAdmin
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins
@@ -13,7 +13,7 @@ from users.models import User
 from users.serializers import UserProfileSerializer
 from drf_yasg.utils import swagger_auto_schema
 class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, GenericViewSet):
-    serializer_class = AdminHouseAdverstisementSerializer
+    serializer_class = AdminHouseAdvertisementSerializer
     permission_classes = [IsAdmin]
     def get_queryset(self):
         return HouseAdvertisement.objects.filter(is_approved=False)
