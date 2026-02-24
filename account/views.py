@@ -13,10 +13,9 @@ from api.permissions import IsInvoiceOwnerOrPayer
 from django.shortcuts import get_object_or_404 
 from rest_framework.exceptions import PermissionDenied, ValidationError 
 from django.conf import settings as django_settings 
-from django.urls import reverse 
-from rest_framework import serializers 
+from rest_framework import viewsets, permissions, mixins
 from drf_yasg.utils import swagger_auto_schema
-from account.serializers import TransactionSerializer
+from account.serializers import TransactionSerializer, WalletSerializer
 from decouple import config
 from django.db.models import Q
 # @swagger_auto_schema(
@@ -136,14 +135,12 @@ from django.db.models import Q
 class InvoiceViewSet(ModelViewSet):
     serializer_class = InvoiceSerializer
     permission_classes = [IsAuthenticated, IsInvoiceOwnerOrPayer]
-
     @swagger_auto_schema(
         operation_summary="List invoices",
         operation_description="Lists all invoices where the authenticated user is either the payer or the creator. Results are ordered by creation date (newest first)."
     )
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
-    
     @swagger_auto_schema(
         operation_summary="Create an invoice (Advertiser-initiated)",
         operation_description="Allows an authenticated advertiser (owner) to create a recurring invoice (monthly, weekly, or yearly) for a tenant of a booked property. Requires `advertisement` ID and `invoice_type` in the request body. The `amount` will be taken from the advertisement's rent.",
@@ -157,7 +154,6 @@ class InvoiceViewSet(ModelViewSet):
     )
     def create(self, request, *args, **kwargs):
         return super().create(request, *args, **kwargs)
-
     @swagger_auto_schema(
         operation_summary="Retrieve a specific invoice",
         operation_description="Retrieves details of a specific invoice. Only accessible if the authenticated user is the payer or the creator of the invoice."
@@ -171,21 +167,18 @@ class InvoiceViewSet(ModelViewSet):
     )
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
-    
     @swagger_auto_schema(
         operation_summary="Partially update an invoice",
         operation_description="Partially updates a specific invoice. Only allowed if the invoice is in 'pending' status and the authenticated user is the creator."
     )
     def partial_update(self, request, *args, **kwargs):
         return super().partial_update(request, *args, **kwargs)
-        
     @swagger_auto_schema(
         operation_summary="Delete an invoice",
         operation_description="Deletes a specific invoice. Only allowed if the invoice is in 'pending' status and the authenticated user is the creator."
     )
     def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
-    
     def get_queryset(self):
         if getattr(self, 'swagger_fake_view', False):
             return Invoice.objects.none()
@@ -193,7 +186,6 @@ class InvoiceViewSet(ModelViewSet):
         return Invoice.objects.filter(
             Q(payer=user) | Q(created_by=user)
         ).order_by("-created_at")
-    
     def perform_create(self, serializer):
         advertisement_id = self.request.data.get("advertisement")
         invoice_type = self.request.data.get("invoice_type")
@@ -233,31 +225,24 @@ class InvoiceViewSet(ModelViewSet):
             raise ValidationError("Cannot delete paid invoice")
         instance.delete()
 
-# class TransactionViewSet(ModelViewSet):
-#     serializer_class = TransactionSerializer
-#     permission_classes = [IsAuthenticated]
-#     http_method_names = ['get', 'head', 'options']
+class WalletViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Viewset to view the current user's wallet balance.
+    We use ReadOnly because balance updates should happen via 
+    signals or services, not direct API edits.
+    """
+    serializer_class = WalletSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Wallet.objects.filter(user=self.request.user)
+    def get_object(self):
+        return Wallet.objects.get_or_create(user=self.request.user)[0]
 
-#     @swagger_auto_schema(
-#         operation_summary="List current user's transactions",
-#         operation_description="Lists all payment transactions associated with the authenticated user's wallet. Results are ordered by creation date (newest first)."
-#     )
-#     def list(self, request, *args, **kwargs):
-#         return super().list(request, *args, **kwargs)
-
-#     def get_queryset(self):
-#         if getattr(self, 'swagger_fake_view', False):
-#             return Transaction.objects.none()
-#         user = self.request.user
-#         try:
-#             wallet = Wallet.objects.get(user=user)
-#             return Transaction.objects.filter(wallet=wallet).order_by("-created_at")
-#         except Wallet.DoesNotExist:
-#             return Transaction.objects.none()
-
-#     @swagger_auto_schema(
-#         operation_summary="Retrieve a specific transaction",
-#         operation_description="Retrieves details of a specific transaction. Only accessible if the transaction is associated with the authenticated user's wallet."
-#     )
-#     def retrieve(self, request, *args, **kwargs):
-#         return super().retrieve(request, *args, **kwargs)
+class TransactionViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    Viewset to list all credits/debits for the logged-in user.
+    """
+    serializer_class = TransactionSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    def get_queryset(self):
+        return Transaction.objects.filter(wallet__user=self.request.user).order_by('-created_at')

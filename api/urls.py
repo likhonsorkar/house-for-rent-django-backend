@@ -2,7 +2,7 @@ from django.urls import path, include
 from rest_framework_nested import routers
 from users.views import UserProfileViewSet
 from rentals.views import OwnerRequestViewSet, MyAdvertiseViewSet, AdvertisementViewSet, HouseImagesViewset, HouseReviewsViewset, FavoriteViewset, RentRequestViewSet
-from account.views import InvoiceViewSet 
+from account.views import InvoiceViewSet, WalletViewSet, TransactionViewSet
 router = routers.DefaultRouter()
 
 router.register('profile', UserProfileViewSet, basename='profile')
@@ -10,7 +10,9 @@ router.register('ads', AdvertisementViewSet, basename='ads')
 
 router.register('myads', MyAdvertiseViewSet, basename='myads')
 router.register('invoices', InvoiceViewSet, basename='invoices')
-#router.register('transactions', TransactionViewSet, basename='transactions') 
+
+router.register('wallet', WalletViewSet, basename='wallet')
+router.register('transactions', TransactionViewSet, basename='transaction')
 
 ads_router = routers.NestedDefaultRouter(router, 'ads', lookup='ads')
 ads_router.register('images', HouseImagesViewset, basename='images')

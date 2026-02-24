@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from account.models import Invoice
+from account.models import Invoice, Wallet, Transaction
 class InvoiceSerializer(serializers.ModelSerializer):
     class Meta:
         model = Invoice
@@ -12,16 +12,20 @@ class InvoiceSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
-from .models import Wallet
-class WalletSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Wallet
-        fields = "__all__"
-        read_only_fields = ("balance", "updated_at")
-from .models import Transaction
+
 
 class TransactionSerializer(serializers.ModelSerializer):
+    transaction_id = serializers.ReadOnlyField(source='invoice.transaction_id')
     class Meta:
         model = Transaction
-        fields = "__all__"
-        read_only_fields = ("created_at",)
+        fields = ['id', 'amount', 'transaction_type', 'invoice', 'transaction_id', 'created_at']
+        read_only_fields = ["created_at"]
+
+class WalletSerializer(serializers.ModelSerializer):
+    recent_transactions = serializers.SerializerMethodField()
+    class Meta:
+        model = Wallet
+        fields = ['balance', 'updated_at', 'recent_transactions']
+    def get_recent_transactions(self, obj):
+        transactions = obj.transactions.all().order_by('-created_at')[:5]
+        return TransactionSerializer(transactions, many=True).data
