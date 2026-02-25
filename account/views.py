@@ -18,19 +18,6 @@ from drf_yasg.utils import swagger_auto_schema
 from account.serializers import TransactionSerializer, WalletSerializer
 from decouple import config
 from django.db.models import Q
-# @swagger_auto_schema(
-#     operation_summary="Initiate payment for an invoice",
-#     operation_description="Initiates a payment session for a specific invoice via SSLCOMMERZ. Requires `invoice_id` in the request body. The payment details are retrieved from the invoice and payer.",
-#     request_body=serializers.Serializer, 
-#     responses={
-#         200: "Payment initiation successful, returns payment URL.",
-#         400: "Invalid request (e.g., missing invoice ID, invoice not pending, user not payer).",
-#         401: "Authentication required to pay.",
-#         403: "Not authorized to pay this invoice.",
-#         404: "Invoice not found.",
-#         500: "Payment gateway initiation failed."
-#     }
-# )
 @api_view(['POST'])
 def initiate_payement(request):
     user = request.user
@@ -72,7 +59,6 @@ def initiate_payement(request):
         post_body['product_category'] = "Rent"
         post_body['product_profile'] = "general"
 
-
         response = sslcz.createSession(post_body)
         print(response)
         
@@ -87,27 +73,26 @@ def initiate_payement(request):
 @api_view(['POST'])
 def succes_payment(request):
     print(request.data)
-    if request.data.get(status) == 'VALID':
-        trxid = request.data.get("tran_id")
-        invoice = get_object_or_404(Invoice, transaction_id=trxid)
-        try:
-            with transaction.atomic():
-                if invoice.status == Invoice.PAID:
-                    return Response({"detail": "Invoice already processed."}, status=status.HTTP_200_OK)
-                invoice.status = Invoice.PAID
-                invoice.save()
-                wallet, created = Wallet.objects.get_or_create(user=invoice.payer)
-                Transaction.objects.create(
-                    wallet=wallet,
-                    invoice=invoice,
-                    amount=invoice.amount,
-                    transaction_type="credit"
-                )
-                wallet.balance += invoice.amount
-                wallet.save()
-                return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/success")
-        except Exception as e:
-            return Response({"error": f"Internal error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+    trxid = request.data.get("tran_id")
+    invoice = get_object_or_404(Invoice, transaction_id=trxid)
+    try:
+        with transaction.atomic():
+            if invoice.status == Invoice.PAID:
+                return Response({"detail": "Invoice already processed."}, status=status.HTTP_200_OK)
+            invoice.status = Invoice.PAID
+            invoice.save()
+            wallet, created = Wallet.objects.get_or_create(user=invoice.payer)
+            Transaction.objects.create(
+                wallet=wallet,
+                invoice=invoice,
+                amount=invoice.amount,
+                transaction_type="credit"
+            )
+            wallet.balance += invoice.amount
+            wallet.save()
+            return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/success")
+    except Exception as e:
+        return Response({"error": f"Internal error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/failed")
 @api_view(['POST'])
 def fail_payment(request):
