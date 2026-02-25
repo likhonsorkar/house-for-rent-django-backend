@@ -105,16 +105,10 @@ def succes_payment(request):
                 )
                 wallet.balance += invoice.amount
                 wallet.save()
-                # return Response({
-                #     "message": "Payment successful",
-                #     "tran_id": trxid
-                # }, status=status.HTTP_200_OK)
                 return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/success")
-
-
         except Exception as e:
             return Response({"error": f"Internal error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-    return Response({"error": 'Payment  Failed'}, status=status.HTTP_400_BAD_REQUEST)
+    return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/failed")
 @api_view(['POST'])
 def fail_payment(request):
     return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/failed")
