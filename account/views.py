@@ -87,7 +87,7 @@ def initiate_payement(request):
 @api_view(['POST'])
 def succes_payment(request):
     print(request.data)
-    if request.data.ge(status) == 'VALID':
+    if request.data.get(status) == 'VALID':
         trxid = request.data.get("tran_id")
         invoice = get_object_or_404(Invoice, transaction_id=trxid)
         try:
