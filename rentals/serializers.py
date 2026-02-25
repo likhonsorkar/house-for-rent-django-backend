@@ -39,7 +39,6 @@ class RequesterProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'email', 'first_name', 'last_name', 'profile_image', 'phone']
-    
     def get_profile_image(self, obj):
         if hasattr(obj, 'profile') and obj.profile.profile_image:
             return obj.profile.profile_image.url
@@ -48,6 +47,7 @@ class AdBriefSerializer(serializers.ModelSerializer):
     class Meta:
         model = HouseAdvertisement
         fields = ['id', 'title', 'rent', 'area']
+        
 class OwnerManageRequestSerializer(serializers.ModelSerializer):
     requester = RequesterProfileSerializer(source='user', read_only=True)
     advertisement_details = AdBriefSerializer(source='advertisement', read_only=True)
