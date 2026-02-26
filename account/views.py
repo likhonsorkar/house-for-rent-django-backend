@@ -81,7 +81,7 @@ def succes_payment(request):
                 return Response({"detail": "Invoice already processed."}, status=status.HTTP_200_OK)
             invoice.status = Invoice.PAID
             invoice.save()
-            wallet, created = Wallet.objects.get_or_create(user=invoice.payer)
+            wallet, created = Wallet.objects.get_or_create(user=invoice.created_by)
             Transaction.objects.create(
                 wallet=wallet,
                 invoice=invoice,
