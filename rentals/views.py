@@ -309,7 +309,7 @@ class RentRequestViewSet(ModelViewSet):
         },
     )
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def accept(self, request, ads_pk=None, pk=None):
+    def accept(self, request):
         rent_request = self.get_object()
         ad = rent_request.advertisement
         
@@ -351,7 +351,7 @@ class RentRequestViewSet(ModelViewSet):
         operation_description="Rejects a tenant's request by deleting it."
     )
     @action(detail=True, methods=['post'], permission_classes=[IsAuthenticated])
-    def reject(self, request, ads_pk=None, pk=None):
+    def reject(self, request):
         rent_request = self.get_object()
         ad = rent_request.advertisement
         if ad.owner != request.user:

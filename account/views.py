@@ -90,7 +90,7 @@ def succes_payment(request):
             )
             wallet.balance += invoice.amount
             wallet.save()
-            return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/success")
+            return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/success/{trxid}")
     except Exception as e:
         return Response({"error": f"Internal error: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
     return redirect(f"{config('FRONTEND_PROTOCOL')}://{config('FRONTEND_DOMAIN')}/payment/failed")
