@@ -1,18 +1,22 @@
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import status
-from rentals.models import HouseAdvertisement
+from rentals.models import HouseAdvertisement, RentRequest
+from account.models import Invoice, Wallet, Transaction
 from dashboard.serializers import AdminHouseAdvertisementSerializer
 from api.permissions import IsAdmin
 from rest_framework.viewsets import GenericViewSet
 from rest_framework import mixins
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from datetime import timedelta
 from users.models import User
 from users.serializers import UserProfileSerializer
 from drf_yasg.utils import swagger_auto_schema
+
 class AdvertisementViewSet(mixins.RetrieveModelMixin, mixins.UpdateModelMixin, mixins.ListModelMixin, GenericViewSet):
+
     serializer_class = AdminHouseAdvertisementSerializer
     permission_classes = [IsAdmin]
     def get_queryset(self):
@@ -98,4 +102,27 @@ class AdminPublicProfileView(mixins.RetrieveModelMixin, mixins.UpdateModelMixin,
     @swagger_auto_schema(operation_summary="[Admin] Update a user profile")
     def update(self, request, *args, **kwargs):
         return super().update(request, *args, **kwargs)
+
+class UserStatisticsView(APIView):
+    permission_classes = [IsAuthenticated]
+    @swagger_auto_schema(
+        operation_summary="Get user dashboard statistics",
+        operation_description="Retrieves key statistics for the authenticated user's dashboard.",
+    )
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        my_ads_count = HouseAdvertisement.objects.filter(owner=user).count()
+        pending_invoice_count = Invoice.objects.filter(payer=user, status='pending').count()
+        rent_requests_received = RentRequest.objects.filter(advertisement__owner=user).count()
+        wallet, created = Wallet.objects.get_or_create(user=user)
+        wallet_balance = wallet.balance
+        transaction_count = Transaction.objects.filter(wallet__user=user).count()
+        stats = {
+            'count_my_ads': my_ads_count,
+            'pending_invoice': pending_invoice_count,
+            'total_rent_request': rent_requests_received,
+            'wallet_balance': wallet_balance,
+            'total_transaction_count': transaction_count
+        }
+        return Response(stats)
 
